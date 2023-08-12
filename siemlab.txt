@@ -1,0 +1,28 @@
+1.Made a free trial on Azure
+2.Created a Virtual Machine with Windows 10, default size, RDP 3389 port, and a resource group, changed the security group so all connections are allowed
+3.Created a log analytic workspace to take logs from the VM from WE logs (show where attacks are coming from) SIEM will take the data and put it on a map
+4.Security Center - enabled ability to allow logs from VM to go to log analytic workspace
+5.Azure Sentinel SIEM - clicked the workspace so it can start analyzing the data
+
+1. once logged into the VM open event viewer and search for Audit Failure ID#4625, this will show failed logon attempts to the VM
+	a. shows the username they tried to use to login
+	b. shows the machine they tried to login
+	c. shows the error Bad username or Bad Password
+	d. shows Source Network Address (shows where it failed from)
+2. use ipgelocation.io api to take the basic geographic data to make a custom log to the log analytic workspace and use sentinel to plot out the attackers on the map
+	a. turn off firewall on the VM so its discoverable on the internet (pinged VM from main PC and it was able to echo a ping)
+	b.go to powershell and use script from https://github.com/joshmadakor1/Sentinel-Lab/blob/main/Custom_Security_Log_Exporter.ps1
+		i. api key 3564c518697440239317a1b97d877178
+	c. runs script that will look for event 4625 and take the IP and gets the geodata and creates a log file. get output to C:\ProgramData\$logfile
+	d.go to azure and createa custom log that will take in all the data from the failed_rdp.log file
+	e.when making the custom fields, modify the custom fields and label them and correctly identify their field type latitude, longitude, 	destinationhost, sourcehost, state, country
+3. go to azure sentinel
+	a. create a new workbook with the new query FAILED_RDP_WITH_GEO_CL | summarize event_count=count() by sourcehost_CF, latitude_CF, longitude_CF, country_CF, label_CF, destinationhost_CF
+	| where destinationhost_CF != "samplehost"
+	| where sourcehost_CF != ""
+	
+	we also want to visualize it with a world map by lat/long
+	we can also label the metrics by label and event_count to show us how many failed logons from an IP address there is
+	b. after creating the visualization leave the VM running overnight and PS1 script as well running and you'll notice different logon attempts from China Russia Philippines Taiwan India 
+
+and the lab is done! =)
